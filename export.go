@@ -21,10 +21,17 @@ package edgedb
 
 import (
 	edgedb "github.com/edgedb/edgedb-go/internal/client"
+	"github.com/edgedb/edgedb-go/internal/codecs"
 	"github.com/edgedb/edgedb-go/internal/edgedbtypes"
 )
 
 const (
+	// DecodeEmptySetsAsNil decodes empty sets as nil slices (default)
+	DecodeEmptySetsAsNil = codecs.DecodeEmptySetsAsNil
+
+	// DecodeEmptySetsAsEmpty decodes empty sets as empty slices
+	DecodeEmptySetsAsEmpty = codecs.DecodeEmptySetsAsEmpty
+
 	// NetworkError indicates that the transaction was interupted
 	// by a network error.
 	NetworkError = edgedb.NetworkError
@@ -447,6 +454,9 @@ var (
 
 	// ParseUUID parses s into a UUID or returns an error.
 	ParseUUID = edgedbtypes.ParseUUID
+
+	// UseEmptySetDecodingMode sets the decoding mode for empty sets.
+	UseEmptySetDecodingMode = codecs.SetDecodingMode
 
 	// WarningsAsErrors is an edgedb.WarningHandler that returns warnings as
 	// errors.

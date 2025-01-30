@@ -26,6 +26,19 @@ import (
 	types "github.com/edgedb/edgedb-go/internal/edgedbtypes"
 )
 
+// DecodingMode controls how empty sets are decoded into Go slices
+type DecodingMode uint8
+
+const (
+	// DecodeEmptySetsAsNil decodes empty sets as nil slices (default)
+	DecodeEmptySetsAsNil DecodingMode = iota
+
+	// DecodeEmptySetsAsEmpty decodes empty sets as empty slices
+	DecodeEmptySetsAsEmpty
+)
+
+var defaultDecodingMode = DecodeEmptySetsAsNil
+
 func buildSetDecoder(
 	desc descriptor.Descriptor,
 	typ reflect.Type,
@@ -42,7 +55,7 @@ func buildSetDecoder(
 		return nil, err
 	}
 
-	return &setDecoder{desc.ID, child, typ, calcStep(typ.Elem())}, nil
+	return &setDecoder{desc.ID, child, typ, calcStep(typ.Elem()), defaultDecodingMode}, nil
 }
 
 func buildSetDecoderV2(
@@ -61,7 +74,7 @@ func buildSetDecoderV2(
 		return nil, err
 	}
 
-	return &setDecoder{desc.ID, child, typ, calcStep(typ.Elem())}, nil
+	return &setDecoder{desc.ID, child, typ, calcStep(typ.Elem()), defaultDecodingMode}, nil
 }
 
 type setDecoder struct {
@@ -71,6 +84,9 @@ type setDecoder struct {
 
 	// step is the element width in bytes for a go array of type `Array.typ`.
 	step int
+
+	// controls how empty sets are decoded into Go slices
+	mode DecodingMode
 }
 
 func (c *setDecoder) DescriptorID() types.UUID { return c.id }
@@ -140,7 +156,17 @@ func (c *setDecoder) Decode(r *buff.Reader, out unsafe.Pointer) error {
 
 func (c *setDecoder) DecodeMissing(out unsafe.Pointer) {
 	slice := (*sliceHeader)(out)
-	slice.Data = nilPointer
-	slice.Len = 0
-	slice.Cap = 0
+	if c.mode == DecodeEmptySetsAsNil {
+		slice.Data = nilPointer
+		slice.Len = 0
+		slice.Cap = 0
+	} else {
+		// Create empty slice
+		setSliceLen(slice, c.typ, 0)
+	}
+}
+
+// SetDecodingMode sets the default decoding mode for empty sets
+func SetDecodingMode(mode DecodingMode) {
+	defaultDecodingMode = mode
 }
